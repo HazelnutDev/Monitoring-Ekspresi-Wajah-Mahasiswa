@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pengenalan Emosi Wajah Real-Time — Python & OpenCV</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:      #07090f;
+  --surface: #0d1117;
+  --card:    #131b24;
+  --card2:   #192130;
+  --border:  #1e2d3d;
+  --border2: #263545;
+  --text:    #e2eaf4;
+  --muted:   #4d6475;
+  --teal:    #1de9b6;
+  --teal-dk: #0d9e7b;
+  --blue:    #38b2f8;
+  --red:     #f05a5a;
+  --green:   #3dd68c;
+  --yellow:  #f5c842;
+  --purple:  #a78bfa;
+  --font:    'DM Sans', sans-serif;
+  --mono:    'JetBrains Mono', monospace;
+  --serif:   'DM Serif Display', serif;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 20px;
+}
+
+.brand-ic {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, var(--teal-dk), var(--blue));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+
+.brand-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--teal);
+  letter-spacing: .3px;
+}
+
+.brand-sub {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+.nav-links {
+  display: flex;
+  gap: 2px;
+}
+
+.nav-a {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: all .18s;
+  display: flex; align-items: center; gap: 5px;
+}
+.nav-a:hover { background: var(--card2); color: var(--text); }
+.nav-a.on   { background: rgba(29,233,182,.1); color: var(--teal); }
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 11px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--muted);
+}
+
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+}
+.dot.on {
+  background: var(--teal);
+  box-shadow: 0 0 0 3px rgba(29,233,182,.15);
+  animation: breathe 2s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100%{ box-shadow:0 0 0 3px rgba(29,233,182,.15); }
+  50%     { box-shadow:0 0 0 6px rgba(29,233,182,.04); }
+}
+
+/* ── SESI BAR ── */
+.sesibar {
+  height: 42px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.inp {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  outline: none;
+  transition: border-color .18s;
+  height: 30px;
+}
+.inp:focus { border-color: var(--teal); }
+
+.sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+.btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font);
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: all .18s;
+  height: 30px;
+  white-space: nowrap;
+}
+.btn:hover { opacity: .85; }
+.btn-go   { background: var(--teal);  color: #07090f; }
+.btn-stop { background: var(--red);   color: #fff; }
+.btn-gray { background: var(--card2); color: var(--muted); border: 1px solid var(--border2); }
+
+/* ── MAIN — 2 kolom, isi sisa tinggi ── */
+.wrap {
+  display: flex;
+  height: calc(100vh - 90px); /* topbar 48 + sesibar 42 */
+}
+
+/* ── PANEL KIRI: VIDEO (lebar & tinggi penuh) ── */
+.vid-panel {
+  flex: 1;
+  min-width: 0;
+  background: #000;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Video isi seluruh panel kiri */
+.vid-box {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.vid-ph {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px;
+  background: radial-gradient(ellipse at center, #0c1820 0%, #07090f 100%);
+}
+
+.vid-ph-ic   { font-size: 52px; opacity: .2; }
+.vid-ph-t    { font-size: 14px; font-weight: 600; color: var(--muted); }
+.vid-ph-sub  { font-size: 11px; color: var(--muted); opacity: .6; font-family: var(--mono); }
+
+#vidImg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+/* Overlay pojok kiri atas */
+.ov-tl {
+  position: absolute; top: 10px; left: 10px;
+  display: none; gap: 7px; align-items: center;
+}
+
+.chip {
+  background: rgba(7,9,15,.75);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-family: var(--mono);
+  display: flex; align-items: center; gap: 5px;
+}
+
+/* Badge angkat tangan */
+.tgn-badge {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  background: rgba(13,158,123,.28);
+  border: 1.5px solid var(--teal-dk);
+  border-radius: 20px;
+  padding: 4px 16px;
+  font-size: 11px; font-weight: 700; font-family: var(--mono);
+  color: var(--teal);
+  display: none; white-space: nowrap;
+}
+.tgn-badge.show { display: block; animation: pop .2s ease; }
+@keyframes pop { from{ opacity:0; transform:translateX(-50%) scale(.9); } to{ opacity:1; transform:translateX(-50%) scale(1); } }
+
+/* Kartu siswa dikenal */
+.kartu {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(7,9,15,.82);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(29,233,182,.18);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: none; align-items: center; gap: 9px;
+  max-width: 190px;
+}
+.kartu.show { display: flex; }
+.kartu-foto { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--teal); flex-shrink: 0; }
+.kartu-nama { font-size: 12px; font-weight: 700; color: #fff; line-height: 1.2; }
+.kartu-tag  { font-size: 9px; color: var(--teal); font-family: var(--mono); margin-top: 2px; }
+
+/* Overlay bawah video — emosi besar */
+.ov-bot {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 40px 18px 14px;
+  background: linear-gradient(to top, rgba(7,9,15,.9) 0%, transparent 100%);
+  display: none; align-items: center; gap: 13px;
+}
+.ov-e    { font-size: 40px; }
+.ov-nama { font-family: var(--serif); font-size: 26px; color: #fff; line-height: 1; }
+.ov-conf { font-size: 11px; color: rgba(255,255,255,.42); font-family: var(--mono); margin-top: 4px; }
+
+/* ── PANEL KANAN (lebar tetap, kecil) ── */
+.side {
+  width: 340px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 4 stat kecil di atas panel kanan */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sb {
+  padding: 10px 6px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.sb:last-child { border-right: none; }
+.sv { font-size: 16px; font-weight: 800; font-family: var(--mono); line-height: 1; }
+.sl { font-size: 9px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1; padding: 9px 4px;
+  background: none; border: none;
+  color: var(--muted); font-size: 10px; font-weight: 700;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  font-family: var(--mono); letter-spacing: .3px;
+  text-transform: uppercase; transition: all .18s;
+}
+.tab-btn.on { color: var(--teal); border-bottom-color: var(--teal); }
+.tab-btn:hover:not(.on) { color: var(--text); }
+
+.tab-c { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; }
+.tab-c.on { display: flex; }
+
+/* ── TAB GRAFIK ── */
+.g-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 12px; display: flex;
+  flex-direction: column; gap: 10px;
+}
+
+.e-card {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  padding: 13px 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+.big-e  { font-size: 40px; }
+.e-nama { font-family: var(--serif); font-size: 20px; line-height: 1; }
+.e-cf   { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
+.e-tgn  { font-size: 10px; color: var(--teal); font-family: var(--mono); font-weight: 600; margin-top: 4px; display: none; }
+
+.sec {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  padding: 12px 13px;
+}
+.sec-t {
+  font-size: 9px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .8px;
+  font-family: var(--mono); margin-bottom: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 62px 1fr 36px;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.bar-row:last-child { margin-bottom: 0; }
+.bar-lbl { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.bar-track { height: 5px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 3px; transition: width .4s cubic-bezier(.4,0,.2,1); }
+.bar-pct   { font-size: 10px; font-weight: 700; font-family: var(--mono); text-align: right; }
+
+.pie-box { height: 160px; position: relative; }
+
+/* ── TAB LOG ── */
+.log-hdr {
+  padding: 8px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.log-hdr span { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+
+.log-cols {
+  display: grid; grid-template-columns: 70px 1fr 48px;
+  padding: 6px 12px;
+  font-size: 9px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .5px; font-family: var(--mono);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+
+.log-body { flex: 1; overflow-y: auto; }
+.log-empty { padding: 36px 16px; text-align: center; color: var(--muted); font-size: 11px; font-family: var(--mono); }
+
+.log-row {
+  display: grid; grid-template-columns: 70px 1fr 48px;
+  padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.03);
+  align-items: center; transition: background .12s;
+}
+.log-row:hover { background: rgba(255,255,255,.025); }
+
+.l-time { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+.e-tag  {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 4px;
+  font-size: 10px; font-weight: 600;
+}
+.c-mini { display: flex; align-items: center; gap: 4px; }
+.c-track { flex: 1; height: 3px; background: rgba(255,255,255,.07); border-radius: 2px; }
+.c-fill  { height: 100%; border-radius: 2px; }
+
+/* ── TAB EKSPOR ── */
+.e-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 12px; display: flex;
+  flex-direction: column; gap: 10px;
+}
+
+.esec {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 9px; padding: 12px 13px;
+}
+.esec-t {
+  font-size: 9px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .8px;
+  font-family: var(--mono); margin-bottom: 10px;
+}
+
+.sel {
+  width: 100%;
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 6px 10px;
+  color: var(--text); font-family: var(--font); font-size: 12px; outline: none;
+}
+.sel:focus { border-color: var(--teal); }
+
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.exp-btn {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px 6px;
+  cursor: pointer; transition: all .18s; color: var(--text);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-family: var(--font);
+}
+.exp-btn:hover { border-color: var(--teal); background: rgba(29,233,182,.04); }
+.exp-ic  { font-size: 18px; }
+.exp-lbl { font-size: 11px; font-weight: 700; }
+.exp-sub { font-size: 9px; color: var(--muted); font-family: var(--mono); }
+
+.btn-full { width: 100%; justify-content: center; padding: 9px; border-radius: 7px; font-size: 12px; }
+.btn-teal   { background: rgba(29,233,182,.1); color: var(--teal); border: 1px solid rgba(29,233,182,.2); }
+.btn-purple { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.2); }
+
+.info-box {
+  background: rgba(29,233,182,.03);
+  border: 1px solid rgba(29,233,182,.08);
+  border-radius: 7px; padding: 10px 12px;
+  font-size: 10px; color: var(--muted);
+  line-height: 2; font-family: var(--mono);
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+@media (max-width: 820px) {
+  .wrap { flex-direction: column; height: auto; overflow: auto; }
+  .vid-panel { height: 55vw; min-height: 260px; }
+  .side { width: 100%; height: 520px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-ic">🧠</div>
+    <div>
+      <div class="brand-name">PENGENALAN EMOSI WAJAH REAL-TIME</div>
+      <div class="brand-sub">Python · OpenCV · DeepFace · MediaPipe</div>
+    </div>
+  </div>
+
+  <div class="nav-links">
+    <a href="/"      class="nav-a on">📡 Monitoring</a>
+    <a href="/siswa" class="nav-a">👥 Data Siswa</a>
+  </div>
+
+  <div class="topbar-right">
+    <div class="live-chip">
+      <span class="dot" id="dotLive"></span>
+      <span id="statusTeks">OFF</span>
+    </div>
+  </div>
+</div>
+
+<!-- SESI BAR -->
+<div class="sesibar">
+  <span class="lbl">Mahasiswa</span>
+  <input class="inp" id="inpMhs" placeholder="Nama mahasiswa..." value="Mahasiswa" style="width:130px;">
+  <div class="sep"></div>
+  <span class="lbl">Kelas</span>
+  <input class="inp" id="inpKelas" placeholder="A/B/C" style="width:60px;">
+  <div class="sep"></div>
+  <span class="lbl">Mata Kuliah</span>
+  <input class="inp" id="inpMapel" placeholder="Nama mata kuliah..." style="width:170px;">
+  <div class="sep"></div>
+  <button class="btn btn-go"   id="btnMulai" onclick="mulai()">▶ Mulai</button>
+  <button class="btn btn-stop" id="btnStop"  onclick="stop()" style="display:none">⏹ Stop</button>
+  <button class="btn btn-gray" id="btnSave"  onclick="simpanSkrng()" style="display:none">💾 Simpan</button>
+</div>
+
+<!-- MAIN -->
+<div class="wrap">
+
+  <!-- ══ VIDEO PANEL (isi sisa ruang) ══ -->
+  <div class="vid-panel">
+    <div class="vid-box">
+      <!-- Placeholder -->
+      <div class="vid-ph" id="vidPh">
+        <div class="vid-ph-ic">📷</div>
+        <div class="vid-ph-t">Kamera Belum Aktif</div>
+        <div class="vid-ph-sub">Isi sesi → klik ▶ Mulai</div>
+      </div>
+
+      <!-- Stream -->
+      <img id="vidImg" alt="">
+
+      <!-- Overlay kiri atas -->
+      <div class="ov-tl" id="ovTL">
+        <div class="chip"><span class="dot on"></span> Streaming</div>
+        <div class="chip" id="fpsEl">— FPS</div>
+      </div>
+
+      <!-- Badge angkat tangan -->
+      <div class="tgn-badge" id="tgnBadge">✋ Angkat Tangan / Bertanya</div>
+
+      <!-- Kartu siswa -->
+      <div class="kartu" id="kartu">
+        <img class="kartu-foto" id="kartuFoto" src="" alt="">
+        <div>
+          <div class="kartu-nama" id="kartuNama">—</div>
+          <div class="kartu-tag">Terdeteksi Otomatis</div>
+          <div id="kartuAkurasi" style="font-size:10px;font-family:var(--mono);margin-top:2px;"></div>
+        </div>
+      </div>
+
+      <!-- Overlay emosi bawah -->
+      <div class="ov-bot" id="ovBot">
+        <div class="ov-e" id="ovEmoji">😐</div>
+        <div>
+          <div class="ov-nama" id="ovNama">Netral</div>
+          <div class="ov-conf" id="ovConf">confidence: —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PANEL KANAN ══ -->
+  <div class="side">
+
+    <!-- Stat -->
+    <div class="stats">
+      <div class="sb"><div class="sv" id="stTotal">0</div><div class="sl">log</div></div>
+      <div class="sb"><div class="sv" id="stDom" style="font-size:20px;">—</div><div class="sl">dominan</div></div>
+      <div class="sb"><div class="sv" id="stTgn">0</div><div class="sl">tanya</div></div>
+      <div class="sb"><div class="sv" id="stDur">0s</div><div class="sl">durasi</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn on" onclick="gTab('grafik',this)">📊 Grafik</button>
+      <button class="tab-btn"   onclick="gTab('log',this)">📋 Log</button>
+      <button class="tab-btn"   onclick="gTab('ekspor',this)">⬇ Ekspor</button>
+    </div>
+
+    <!-- TAB GRAFIK -->
+    <div class="tab-c on" id="tab-grafik">
+      <div class="g-scroll">
+        <!-- Emosi terkini -->
+        <div class="e-card">
+          <div class="big-e" id="bigE">😐</div>
+          <div>
+            <div class="e-nama" id="bigNama">Netral</div>
+            <div class="e-cf"   id="bigCf">confidence: —</div>
+            <div class="e-tgn"  id="tgnHint">✋ Bertanya terdeteksi</div>
+          </div>
+        </div>
+
+        <!-- Bar live -->
+        <div class="sec">
+          <div class="sec-t">Distribusi Emosi (Live)</div>
+          {% for k,v in emosi_list.items() %}
+          <div class="bar-row">
+            <span class="bar-lbl">{{ v.emoji }} {{ v.label }}</span>
+            <div class="bar-track">
+              <div class="bar-fill" id="bar_{{k}}" style="width:0%;background:{{v.warna}};"></div>
+            </div>
+            <span class="bar-pct" id="pct_{{k}}" style="color:{{v.warna}}">0%</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pie kumulatif -->
+        <div class="sec">
+          <div class="sec-t">Kumulatif Sesi Ini</div>
+          <div class="pie-box"><canvas id="chartPie"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB LOG -->
+    <div class="tab-c" id="tab-log">
+      <div class="log-hdr">
+        <span id="logCount">0 entri</span>
+        <button class="btn btn-gray" onclick="hapusLog()" style="font-size:10px;padding:3px 9px;height:24px;">🗑 Hapus</button>
+      </div>
+      <div class="log-cols"><span>Waktu</span><span>Emosi</span><span>Conf</span></div>
+      <div class="log-body" id="logBody">
+        <div class="log-empty">// belum ada deteksi</div>
+      </div>
+    </div>
+
+    <!-- TAB EKSPOR -->
+    <div class="tab-c" id="tab-ekspor">
+      <div class="e-scroll">
+        <div class="esec">
+          <div class="esec-t">Filter Mata Kuliah</div>
+          <div style="display:flex;gap:7px;">
+            <select class="sel" id="selMapel">
+              <option value="semua">Semua Mata Kuliah</option>
+              {% for m in mapel_list %}<option value="{{m}}">{{m}}</option>{% endfor %}
+            </select>
+            <button class="btn btn-gray" onclick="refreshMapel()" style="flex-shrink:0;padding:5px 9px;height:30px;">🔄</button>
+          </div>
+        </div>
+
+        <div class="esec">
+          <div class="esec-t">Ekspor per Periode</div>
+          <div class="exp-grid">
+            <button class="exp-btn" onclick="ekspor('harian')">
+              <div class="exp-ic">📆</div><div class="exp-lbl">Hari Ini</div><div class="exp-sub">data hari ini</div>
+            </button>
+            <button class="exp-btn" onclick="ekspor('mingguan')">
+              <div class="exp-ic">📅</div><div class="exp-lbl">1 Minggu</div><div class="exp-sub">7 hari terakhir</div>
+            </button>
+            <button class="exp-btn" onclick="ekspor('bulanan')">
+              <div class="exp-ic">🗓</div><div class="exp-lbl">1 Bulan</div><div class="exp-sub">30 hari terakhir</div>
+            </button>
+            <button class="exp-btn" onclick="ekspor('tiga_bln')">
+              <div class="exp-ic">📊</div><div class="exp-lbl">3 Bulan</div><div class="exp-sub">90 hari terakhir</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="esec">
+          <div class="esec-t">Ekspor 1 Semester</div>
+          <button class="btn btn-full btn-teal" onclick="ekspor('enam_bln')">
+            📥 Laporan Semester (6 Bulan)
+          </button>
+        </div>
+
+        <div class="esec">
+          <div class="esec-t">Semua Data</div>
+          <button class="btn btn-full btn-purple" onclick="ekspor('semua')">
+            📥 Ekspor Semua (Excel)
+          </button>
+        </div>
+
+        <div class="info-box">
+          Sheet 1 — Ringkasan & persentase emosi<br>
+          Sheet 2 — Data log lengkap + warna emosi<br>
+          Sheet 3 — Analisis + kesimpulan per mahasiswa
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+const WARNA={angry:'#f05a5a',disgust:'#a78bfa',fear:'#6366f1',happy:'#3dd68c',sad:'#38b2f8',surprise:'#f5c842',neutral:'#4d6475'};
+const LABEL={angry:'Marah',disgust:'Jijik',fear:'Takut',happy:'Senang',sad:'Sedih',surprise:'Terkejut',neutral:'Netral'};
+const EMOJ ={angry:'😠',disgust:'🤢',fear:'😨',happy:'😊',sad:'😢',surprise:'😲',neutral:'😐'};
+
+let poll=null,logRef=null,durTmr=null,isOn=false;
+let durSec=0,frmCnt=0,lastFpsT=Date.now();
+let kumu={angry:0,disgust:0,fear:0,happy:0,sad:0,surprise:0,neutral:0};
+
+const pie=new Chart(document.getElementById('chartPie').getContext('2d'),{
+  type:'doughnut',
+  data:{
+    labels:Object.values(LABEL),
+    datasets:[{
+      data:Array(7).fill(0),
+      backgroundColor:Object.values(WARNA).map(c=>c+'aa'),
+      borderColor:Object.values(WARNA),
+      borderWidth:1.5
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{color:'#4d6475',font:{size:9},boxWidth:9,padding:7}}}
+    ,cutout:'58%'
+  }
+});
+
+async function mulai(){
+  const mhs=document.getElementById('inpMhs').value.trim()||'Mahasiswa';
+  const kls=document.getElementById('inpKelas').value.trim()||'-';
+  const mpl=document.getElementById('inpMapel').value.trim()||'-';
+  await fetch('/api/set-sesi',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mahasiswa:mhs,kelas:kls,mata_kuliah:mpl})});
+
+  const img=document.getElementById('vidImg');
+  img.src='/video?'+Date.now(); img.style.display='block';
+  document.getElementById('vidPh').style.display='none';
+  document.getElementById('ovTL').style.display='flex';
+  document.getElementById('ovBot').style.display='flex';
+  document.getElementById('btnMulai').style.display='none';
+  document.getElementById('btnStop').style.display='inline-flex';
+  document.getElementById('btnSave').style.display='inline-flex';
+  document.getElementById('dotLive').classList.add('on');
+  document.getElementById('statusTeks').textContent='LIVE';
+
+  isOn=true; durSec=0;
+  poll   =setInterval(updateStatus,900);
+  logRef =setInterval(updateLog,5000);
+  durTmr =setInterval(()=>{
+    durSec++;
+    const m=Math.floor(durSec/60),s=durSec%60;
+    document.getElementById('stDur').textContent=m>0?`${m}m${s}s`:`${s}s`;
+  },1000);
+  img.onload=()=>{
+    frmCnt++;const now=Date.now();
+    if(now-lastFpsT>=1000){document.getElementById('fpsEl').textContent=frmCnt+' FPS';frmCnt=0;lastFpsT=now;}
+  };
+}
+
+function stop(){
+  isOn=false;[poll,logRef,durTmr].forEach(clearInterval);fetch('/api/stop');
+  const img=document.getElementById('vidImg');
+  img.src='';img.style.display='none';
+  document.getElementById('vidPh').style.display='flex';
+  document.getElementById('ovTL').style.display='none';
+  document.getElementById('ovBot').style.display='none';
+  document.getElementById('tgnBadge').classList.remove('show');
+  document.getElementById('kartu').classList.remove('show');
+  document.getElementById('btnMulai').style.display='inline-flex';
+  document.getElementById('btnStop').style.display='none';
+  document.getElementById('btnSave').style.display='none';
+  document.getElementById('dotLive').classList.remove('on');
+  document.getElementById('statusTeks').textContent='OFF';
+  updateLog();
+}
+
+async function updateStatus(){
+  try{
+    const d=await(await fetch('/api/status')).json();
+    const em=d.emosi||'neutral',ej=d.emoji||'😐',lb=d.label||'Netral',cf=d.conf||0;
+    document.getElementById('ovEmoji').textContent=ej;
+    document.getElementById('ovNama').textContent=lb;
+    document.getElementById('ovConf').textContent='confidence: '+cf.toFixed(1)+'%';
+    document.getElementById('bigE').textContent=ej;
+    document.getElementById('bigNama').textContent=lb;
+    document.getElementById('bigCf').textContent='confidence: '+cf.toFixed(1)+'%';
+    document.getElementById('stDom').textContent=ej;
+    const tgn=d.angkat||false;
+    document.getElementById('tgnBadge').classList.toggle('show',tgn);
+    document.getElementById('tgnHint').style.display=tgn?'block':'none';
+    if(d.semua){
+      Object.entries(d.semua).forEach(([k,v])=>{
+        const b=document.getElementById('bar_'+k),p=document.getElementById('pct_'+k);
+        if(b)b.style.width=v.nilai+'%';
+        if(p)p.textContent=v.nilai.toFixed(1)+'%';
+      });
+    }
+    const kt=document.getElementById('kartu');
+    if(d.nama_dikenal){
+      document.getElementById('kartuNama').textContent=d.nama_dikenal;
+      const fo=document.getElementById('kartuFoto');
+      if(d.foto_url){fo.src=d.foto_url;fo.style.display='block';}else fo.style.display='none';
+      const akEl=document.getElementById('kartuAkurasi');
+      if(akEl && d.akurasi_fr!=null){
+        akEl.textContent=d.akurasi_fr.toFixed(0)+'% match';
+        akEl.style.color=d.akurasi_fr>=80?'#1de9b6':d.akurasi_fr>=60?'#f5c842':'#f05a5a';
+      }
+      kt.classList.add('show');
+    }else kt.classList.remove('show');
+    kumu[em]=(kumu[em]||0)+1;
+    pie.data.datasets[0].data=Object.keys(LABEL).map(k=>kumu[k]||0);
+    pie.update('none');
+  }catch(e){}
+}
+
+async function updateLog(){
+  try{
+    const rows=await(await fetch('/api/log')).json();
+    document.getElementById('logCount').textContent=rows.length+' entri';
+    document.getElementById('stTotal').textContent=rows.length;
+    document.getElementById('stTgn').textContent=rows.filter(r=>r.angkat_tgn).length;
+    const h={};rows.forEach(r=>h[r.emosi]=(h[r.emosi]||0)+1);
+    const dom=Object.entries(h).sort((a,b)=>b[1]-a[1])[0]?.[0]||'neutral';
+    document.getElementById('stDom').textContent=EMOJ[dom]||'—';
+    const body=document.getElementById('logBody');
+    if(!rows.length){body.innerHTML='<div class="log-empty">// belum ada deteksi</div>';return;}
+    body.innerHTML=rows.map(r=>{
+      const w=WARNA[r.emosi]||'#4d6475',pct=Math.round(r.confidence);
+      const tBdg=r.angkat_tgn?` <span style="font-size:8px;color:var(--teal);">✋</span>`:'';
+      return `<div class="log-row">
+        <span class="l-time">${(r.waktu||'').split(' ')[1]||''}</span>
+        <span><span class="e-tag" style="background:${w}22;color:${w};">${EMOJ[r.emosi]||'😐'} ${r.label}</span>${tBdg}</span>
+        <span><div class="c-mini"><div class="c-track"><div class="c-fill" style="width:${pct}%;background:${w};"></div></div></div></span>
+      </div>`;
+    }).join('');
+  }catch(e){}
+}
+
+async function simpanSkrng(){
+  await fetch('/api/simpan-sekarang',{method:'POST'});
+  const b=document.getElementById('btnSave');const o=b.innerHTML;b.innerHTML='✅';
+  setTimeout(()=>{b.innerHTML=o;},1500);await updateLog();
+}
+
+async function hapusLog(){
+  if(!confirm('Hapus semua log?'))return;
+  await fetch('/api/hapus-log',{method:'POST'});
+  kumu={angry:0,disgust:0,fear:0,happy:0,sad:0,surprise:0,neutral:0};
+  pie.data.datasets[0].data=Array(7).fill(0);pie.update();
+  await updateLog();
+}
+
+async function ekspor(f){
+  const mapel=document.getElementById('selMapel').value;
+  const res=await fetch(`/api/ekspor-excel?filter=${f}&mapel=${encodeURIComponent(mapel)}`);
+  if(!res.ok){const e=await res.json();alert('❌ '+e.error);return;}
+  const blob=await res.blob();const a=document.createElement('a');
+  const m=(res.headers.get('content-disposition')||'').match(/filename="?([^"]+)"?/);
+  a.href=URL.createObjectURL(blob);a.download=m?m[1]:`laporan_${f}.xlsx`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+
+async function refreshMapel(){
+  const list=await(await fetch('/api/mapel')).json();
+  const sel=document.getElementById('selMapel');
+  sel.innerHTML='<option value="semua">Semua Mata Kuliah</option>';
+  list.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+}
+
+function gTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.tab-c').forEach(c=>c.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('tab-'+name).classList.add('on');
+  if(name==='log')updateLog();
+}
+
+updateLog();
+</script>
+</body>
+</html>

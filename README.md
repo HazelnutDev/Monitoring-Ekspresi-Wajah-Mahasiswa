@@ -58,7 +58,7 @@ Webcam → OpenCV (deteksi wajah)
 ## 🗂️ Struktur Folder
 
 ```
-emosi-v3/
+emosi-v4/
 ├── app.py                  # Aplikasi utama Flask
 ├── requirements.txt        # Dependensi library
 ├── README.md

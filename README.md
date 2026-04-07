@@ -110,7 +110,7 @@ Menggunakan **MediaPipe Pose** untuk mendeteksi pose tulang tubuh. Tangan diangg
 
 ### 1. Clone Repositori
 ```bash
-git clone https://github.com/username/nama-repo.git
+git clone https://github.com/HazelnutDev/Monitoring-Ekspresi-Wajah-Mahasiswa.git
 cd nama-repo
 ```
 
